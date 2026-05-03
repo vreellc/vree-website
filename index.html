@@ -227,6 +227,33 @@
     padding: 14px 0;
   }
 
+  /* Age Verification */
+  .age-verify { margin-bottom: 14px; }
+  .age-label { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+  .age-checkbox-wrap { position: relative; flex-shrink: 0; }
+  .age-checkbox-wrap input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
+  .age-custom-check {
+    width: 18px; height: 18px;
+    border: 1px solid rgba(201,184,130,0.4);
+    background: rgba(27,42,74,0.4);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease; flex-shrink: 0;
+  }
+  .age-custom-check.checked { background: var(--champagne); border-color: var(--champagne); }
+  .age-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; font-weight: 300;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(245,240,232,0.55); line-height: 1.5;
+  }
+  .age-error {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.12em;
+    color: rgba(239,83,80,0.8);
+    margin-top: 8px; margin-left: 30px; display: none;
+  }
+  .form-row.locked { opacity: 0.35; pointer-events: none; }
+
   /* ── PILLARS ── */
   .pillars {
     display: flex; gap: 0;
@@ -399,6 +426,23 @@
 
     <div class="form-wrap">
       <span class="form-label">Join the waitlist — be first when we launch</span>
+
+      <!-- Age Verification -->
+      <div class="age-verify" id="ageVerify">
+        <label class="age-label">
+          <div class="age-checkbox-wrap">
+            <input type="checkbox" id="ageCheck" onchange="toggleForm()">
+            <div class="age-custom-check" id="customCheck">
+              <svg id="checkIcon" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;width:10px;height:8px">
+                <path d="M1 5L4.5 8.5L11 1" stroke="#F5F0E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <span class="age-text">I confirm I am 18 years of age or older</span>
+        </label>
+        <div class="age-error" id="ageError">You must be 18 or older to join the VREE waitlist.</div>
+      </div>
+
       <div class="form-row" id="formRow">
         <input
           class="form-input"
@@ -457,13 +501,40 @@
 </div>
 
 <script>
+function toggleForm() {
+  const check = document.getElementById('ageCheck');
+  const customCheck = document.getElementById('customCheck');
+  const checkIcon = document.getElementById('checkIcon');
+  const formRow = document.getElementById('formRow');
+  const ageError = document.getElementById('ageError');
+
+  if (check.checked) {
+    customCheck.classList.add('checked');
+    checkIcon.style.display = 'block';
+    formRow.classList.remove('locked');
+    ageError.style.display = 'none';
+  } else {
+    customCheck.classList.remove('checked');
+    checkIcon.style.display = 'none';
+    formRow.classList.add('locked');
+  }
+}
+
 function handleSubmit() {
+  const check = document.getElementById('ageCheck');
+  const ageError = document.getElementById('ageError');
   const input = document.getElementById('emailInput');
   const formRow = document.getElementById('formRow');
   const success = document.getElementById('formSuccess');
   const email = input.value.trim();
 
-  // Basic validation
+  // Age verification check
+  if (!check.checked) {
+    ageError.style.display = 'block';
+    return;
+  }
+
+  // Basic email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     input.style.borderLeft = '2px solid rgba(239,83,80,0.6)';
@@ -478,14 +549,17 @@ function handleSubmit() {
 
   // Success state
   formRow.style.display = 'none';
+  document.getElementById('ageVerify').style.display = 'none';
   success.style.display = 'block';
 
   // In production: send email to your backend or Mailchimp/ConvertKit API
   console.log('Waitlist signup:', email);
 }
 
-// Allow Enter key to submit
+// Initialize form as locked until age verified
 document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('formRow').classList.add('locked');
+
   const input = document.getElementById('emailInput');
   if (input) {
     input.addEventListener('keydown', function(e) {
